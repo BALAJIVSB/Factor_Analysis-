@@ -1,0 +1,97 @@
+#Determining the Underlying Factors of Chronic Liver Disease through Factor Analysis (FACTOR ANALYSIS - LIVER CODE )
+
+
+
+#liver testcase - with screeplot
+# Import necessary libraries
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.decomposition import FactorAnalysis
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import make_pipeline
+from sklearn.decomposition import PCA, FactorAnalysis
+
+# Load your dataset
+data = pd.read_csv("/content/indian_liver_patient.csv")
+
+# Select relevant columns for factor analysis (numeric variables)
+selected_columns = data.select_dtypes(include=[np.number])
+
+# Handling missing values (replace NaNs with the mean)
+imputer = SimpleImputer(strategy='mean')
+selected_columns_imputed = imputer.fit_transform(selected_columns)
+
+# Standardize the data
+scaler = StandardScaler()
+selected_columns_standardized = scaler.fit_transform(selected_columns_imputed)
+
+# Create a FactorAnalysis pipeline with Varimax rotation
+fa = make_pipeline(FactorAnalysis(n_components=3, rotation='varimax', random_state=42))
+
+# Fit the FactorAnalysis model to your data
+fa.fit(selected_columns_standardized)
+
+# Get the factor loadings
+factor_loadings = fa.named_steps['factoranalysis'].components_
+
+# Display factor loadings
+print("Factor Loadings:")
+print(factor_loadings)
+
+# Display factors along with loadings for each variable
+print("\nFactors and Loadings:")
+for i, variable in enumerate(selected_columns.columns):
+    print(f"{variable}:")
+    for j, factor in enumerate(factor_loadings):
+        print(f"  Factor {j} Loading: {factor[i]:.2f}")
+    print()
+
+# Calculate communalities
+communalities = np.sum(factor_loadings**2, axis=0)
+print("\nCommunalities:")
+print(communalities)
+
+# Calculate specific variances
+specific_variances = 1 - communalities
+print("\nSpecific Variances:")
+print(specific_variances)
+
+# Create matrix of specific variances
+matrix_specific_variance = np.diag(specific_variances)
+print("\nMatrix of Specific Variances:")
+print(matrix_specific_variance)
+
+# Compute covariance matrix from factor loading matrix and matrix of specific variances
+covariance_matrix = np.dot(factor_loadings.T, factor_loadings) + matrix_specific_variance
+print("\nCovariance Matrix:")
+print(covariance_matrix)
+
+# Calculate the variance of each factor loading
+factor_loadings_variances = np.var(factor_loadings, axis=1)
+
+# Display variances of factor loadings
+print("\nVariances of Factor Loadings:")
+for j, factor_variance in enumerate(factor_loadings_variances):
+    print(f"Factor {j} Loading Variance: {factor_variance:.4f}")
+
+# Visualize the results (heatmap of factor loadings)
+plt.figure(figsize=(10, 6))
+sns.heatmap(factor_loadings, annot=True, cmap='coolwarm', xticklabels=selected_columns.columns)
+plt.title('Factor Loadings Heatmap')
+plt.show()
+
+# Scree Plot for Explained Variance
+pca = PCA().fit(selected_columns_standardized)
+explained_variance_ratio = pca.explained_variance_ratio_
+
+plt.figure(figsize=(10, 6))
+plt.plot(range(1, len(explained_variance_ratio) + 1), np.cumsum(explained_variance_ratio), marker='o')
+plt.title('Scree Plot for Explained Variance')
+plt.xlabel('Number of Factors')
+plt.ylabel('Cumulative Explained Variance')
+plt.show()
+
+
